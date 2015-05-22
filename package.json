@@ -1,0 +1,11 @@
+{
+  "name": "anyrequest",
+  "version": "0.0.1",
+  "description": "a http server like Requestbin",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jun Sumida",
+  "license": "MIT"
+}
