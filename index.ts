@@ -3,17 +3,24 @@
 
 class Request {
     private rawRequest: any;
+    private rawBody:    string;
     constructor(request: any) {
         this.rawRequest = request;
         this.parseRawRequest();
     }
 
-    public method: String;
-    public path:   String;
+    public method: string;
+    public path:   string;
+    public body:   Object;
 
     private parseRawRequest() {
         this.method = this.rawRequest.method;
         this.path   = this.rawRequest.url;
+    }
+
+    public parseRequestBody(chunk: any) {
+        this.rawBody = chunk.toString();
+        this.body    = JSON.parse(this.rawBody);
     }
 }
 
@@ -22,10 +29,13 @@ class Response {
     constructor(response: any) {
         this.response = response;
     }
+
+    public body: string = 'hello. typescript!';
+
     public render() {
         this.response.statusCode = 200;
         this.response.setHeader('Content-type', 'text/plain');
-        this.response.write('Hello. TypeScript!');
+        this.response.write(this.body);
         this.response.end();
     }
 }
@@ -35,7 +45,13 @@ var server = http.createServer(function(req, res){
 
     var request  = new Request(req);
     var response = new Response(res);
-    response.render();
+
+    req.on('data', function(chunk){
+        request.parseRequestBody(chunk);
+        response.body = JSON.stringify(request.body);
+        response.render();
+    });
+
 });
 server.listen(8080);
 console.log('Sever starts.');
