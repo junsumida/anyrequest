@@ -4,6 +4,8 @@
 class Request {
     private rawRequest: any;
     private rawBody:    string;
+    private chunk:      any[] = [];
+
     constructor(request: any) {
         this.rawRequest = request;
         this.parseRawRequest();
@@ -13,13 +15,18 @@ class Request {
     public path:   string;
     public body:   Object;
 
+    public pushChunk(chunk: any) {
+        this.chunk.push(chunk);
+    }
+
     private parseRawRequest() {
         this.method = this.rawRequest.method;
         this.path   = this.rawRequest.url;
     }
 
-    public parseRequestBody(chunk: any) {
-        this.rawBody = chunk.toString();
+    public parseRequestBody() {
+        var data     = Buffer.concat(this.chunk);
+        this.rawBody = data.toString();
         this.body    = JSON.parse(this.rawBody);
     }
 }
@@ -47,10 +54,19 @@ var server = http.createServer(function(req, res){
     var response = new Response(res);
 
     req.on('data', function(chunk){
-        request.parseRequestBody(chunk);
-        response.body = JSON.stringify(request.body);
-        response.render();
+        request.pushChunk(chunk);
     });
+
+    req.on('end', function(){
+        try {
+            request.parseRequestBody();
+            response.body = JSON.stringify(request.body);
+        } catch (e) {
+            console.log(e);
+        } finally {
+            response.render();
+        }
+    })
 
 });
 server.listen(8080);

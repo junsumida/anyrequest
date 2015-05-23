@@ -2,15 +2,20 @@
 /// <reference path="./definitely_typed/express/express.d.ts" />
 var Request = (function () {
     function Request(request) {
+        this.chunk = [];
         this.rawRequest = request;
         this.parseRawRequest();
     }
+    Request.prototype.pushChunk = function (chunk) {
+        this.chunk.push(chunk);
+    };
     Request.prototype.parseRawRequest = function () {
         this.method = this.rawRequest.method;
         this.path = this.rawRequest.url;
     };
-    Request.prototype.parseRequestBody = function (chunk) {
-        this.rawBody = chunk.toString();
+    Request.prototype.parseRequestBody = function () {
+        var data = Buffer.concat(this.chunk);
+        this.rawBody = data.toString();
         this.body = JSON.parse(this.rawBody);
     };
     return Request;
@@ -33,9 +38,19 @@ var server = http.createServer(function (req, res) {
     var request = new Request(req);
     var response = new Response(res);
     req.on('data', function (chunk) {
-        request.parseRequestBody(chunk);
-        response.body = JSON.stringify(request.body);
-        response.render();
+        request.pushChunk(chunk);
+    });
+    req.on('end', function () {
+        try {
+            request.parseRequestBody();
+            response.body = JSON.stringify(request.body);
+        }
+        catch (e) {
+            console.log(e);
+        }
+        finally {
+            response.render();
+        }
     });
 });
 server.listen(8080);
