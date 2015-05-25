@@ -1,5 +1,7 @@
-/// <reference path="./definitely_typed/node/node.d.ts" />
-/// <reference path="./definitely_typed/express/express.d.ts" />
+/// <reference path="./typings/node/node.d.ts" />
+/// <reference path="./typings/underscore/underscore.d.ts" />
+/// <reference path="./typings/urijs/URI.d.ts" />
+var URI = require("URIjs"); // FIXME
 var Request = (function () {
     function Request(request) {
         this.chunk = [];
@@ -11,7 +13,8 @@ var Request = (function () {
     };
     Request.prototype.parseRawRequest = function () {
         this.method = this.rawRequest.method;
-        this.path = this.rawRequest.url;
+        this.url = URI.parse(this.rawRequest.url);
+        this.urlParams = this.url.parts;
     };
     Request.prototype.parseRequestBody = function () {
         var data = Buffer.concat(this.chunk);

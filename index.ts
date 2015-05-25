@@ -1,5 +1,9 @@
-/// <reference path="./definitely_typed/node/node.d.ts" />
-/// <reference path="./definitely_typed/express/express.d.ts" />
+/// <reference path="./typings/node/node.d.ts" />
+/// <reference path="./typings/underscore/underscore.d.ts" />
+/// <reference path="./typings/urijs/URI.d.ts" />
+
+import _ = require("underscore");
+var URI  = require("URIjs"); // FIXME
 
 class Request {
     private rawRequest: any;
@@ -12,16 +16,21 @@ class Request {
     }
 
     public method: string;
-    public path:   string;
+    public url:    any;
     public body:   Object;
+
+    public path: string;
+
+    public urlParams: Object;
 
     public pushChunk(chunk: any) {
         this.chunk.push(chunk);
     }
 
     private parseRawRequest() {
-        this.method = this.rawRequest.method;
-        this.path   = this.rawRequest.url;
+        this.method    = this.rawRequest.method;
+        this.url       = URI.parse(this.rawRequest.url);
+        this.urlParams = this.url.parts
     }
 
     public parseRequestBody() {
@@ -48,16 +57,16 @@ class Response {
 }
 
 var http   = require('http');
-var server = http.createServer(function(req, res){
+var server = http.createServer((req, res)=>{
 
     var request  = new Request(req);
     var response = new Response(res);
 
-    req.on('data', function(chunk){
+    req.on('data', (chunk)=>{
         request.pushChunk(chunk);
     });
 
-    req.on('end', function(){
+    req.on('end', ()=>{
         try {
             request.parseRequestBody();
             response.body = JSON.stringify(request.body);
@@ -71,5 +80,3 @@ var server = http.createServer(function(req, res){
 });
 server.listen(8080);
 console.log('Sever starts.');
-
-

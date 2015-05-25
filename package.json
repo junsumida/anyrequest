@@ -9,8 +9,9 @@
   "author": "Jun Sumida",
   "license": "MIT",
   "dependencies": {
+      "underscore": "*",
       "typescript": "~>1.4",
-      "express": ">=4.0.0"
+      "URIjs": "1.14"
   },
   "devDependencies": {
       "jasmine": "~>2.3.1",
