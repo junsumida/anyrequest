@@ -30,7 +30,7 @@ class Request {
     private parseRawRequest() {
         this.method    = this.rawRequest.method;
         this.url       = URI.parse(this.rawRequest.url);
-        this.urlParams = this.url.parts
+        this.urlParams = this.url.parts;
     }
 
     public parseRequestBody() {
