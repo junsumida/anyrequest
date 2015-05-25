@@ -1,6 +1,10 @@
 /// <reference path="./typings/node/node.d.ts" />
 /// <reference path="./typings/underscore/underscore.d.ts" />
 /// <reference path="./typings/urijs/URI.d.ts" />
+/// <reference path="./typings/socket.io/socket.io.d.ts" />
+var socket_io = require("socket.io");
+var events = require("events");
+var EventEmitter = events.EventEmitter;
 var URI = require("URIjs"); // FIXME
 var Request = (function () {
     function Request(request) {
@@ -25,17 +29,18 @@ var Request = (function () {
 })();
 var Response = (function () {
     function Response(response) {
-        this.body = 'hello. typescript!';
+        this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
         this.response = response;
     }
     Response.prototype.render = function () {
         this.response.statusCode = 200;
-        this.response.setHeader('Content-type', 'text/plain');
+        this.response.setHeader('Content-type', 'text/html');
         this.response.write(this.body);
         this.response.end();
     };
     return Response;
 })();
+var http_to_sio = new EventEmitter();
 var http = require('http');
 var server = http.createServer(function (req, res) {
     var request = new Request(req);
@@ -47,6 +52,7 @@ var server = http.createServer(function (req, res) {
         try {
             request.parseRequestBody();
             response.body = JSON.stringify(request.body);
+            http_to_sio.emit('gotHttpRequest', response.body);
         }
         catch (e) {
             console.log(e);
@@ -55,6 +61,14 @@ var server = http.createServer(function (req, res) {
             response.render();
         }
     });
+});
+var io = socket_io.listen(server);
+io.sockets.on('connection', function (socket) {
+    console.log("server connected");
+});
+http_to_sio.on('gotHttpRequest', function (msg) {
+    console.log(msg);
+    io.emit('httpReq', { message: msg });
 });
 server.listen(8080);
 console.log('Sever starts.');
