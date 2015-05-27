@@ -60,6 +60,7 @@ var server = http.createServer(function (req, res) {
         request.pushChunk(chunk);
     });
     req.on('end', function () {
+        var router = new Router(request);
         try {
             request.parseRequestBody();
             response.body = JSON.stringify(request.body);
@@ -67,9 +68,12 @@ var server = http.createServer(function (req, res) {
         }
         catch (e) {
             console.log(e);
+            if (router.contentType === 'application/json') {
+                response.body = JSON.stringify({ "success": 0 });
+            }
         }
         finally {
-            response.render(new Router(request));
+            response.render(router);
         }
     });
 });

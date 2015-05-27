@@ -91,6 +91,7 @@ var server = http.createServer((req, res)=>{
     });
 
     req.on('end', ()=>{
+        var router = new Router(request);
         try {
             request.parseRequestBody();
 
@@ -98,8 +99,11 @@ var server = http.createServer((req, res)=>{
             http_to_sio.emit('gotHttpRequest', response.body);
         } catch (e) {
             console.log(e);
+            if (router.contentType === 'application/json') {
+                response.body = JSON.stringify({"success": 0});
+            }
         } finally {
-            response.render(new Router(request));
+            response.render(router);
         }
     })
 
