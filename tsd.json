@@ -4,5 +4,12 @@
   "ref": "master",
   "path": "typings",
   "bundle": "typings/tsd.d.ts",
-  "installed": {}
+  "installed": {
+    "urijs/URIjs.d.ts": {
+      "commit": "70737c2a2496f7a13c4da63eb00081cad94d19f1"
+    },
+    "jasmine/jasmine.d.ts": {
+      "commit": "70737c2a2496f7a13c4da63eb00081cad94d19f1"
+    }
+  }
 }
