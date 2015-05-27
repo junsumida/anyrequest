@@ -32,13 +32,24 @@ var Response = (function () {
         this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
         this.response = response;
     }
-    Response.prototype.render = function () {
+    Response.prototype.render = function (router) {
         this.response.statusCode = 200;
-        this.response.setHeader('Content-type', 'text/html');
+        this.response.setHeader('Content-type', router.contentType);
         this.response.write(this.body);
         this.response.end();
     };
     return Response;
+})();
+var Router = (function () {
+    function Router(request) {
+        if (request.url.path === '/') {
+            this.contentType = 'text/html';
+        }
+        else {
+            this.contentType = 'application/json';
+        }
+    }
+    return Router;
 })();
 var http_to_sio = new EventEmitter();
 var http = require('http');
@@ -58,7 +69,7 @@ var server = http.createServer(function (req, res) {
             console.log(e);
         }
         finally {
-            response.render();
+            response.render(new Router(request));
         }
     });
 });

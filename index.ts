@@ -21,7 +21,7 @@ class Request {
 
     public method: string;
     public url:    any;
-    public body:   Object;
+    public body:   any;
 
     public path: string;
 
@@ -40,7 +40,7 @@ class Request {
     public parseRequestBody() {
         var data     = Buffer.concat(this.chunk);
         this.rawBody = data.toString();
-        this.body    = JSON.parse(this.rawBody);
+        this.body = JSON.parse(this.rawBody);
     }
 }
 
@@ -57,13 +57,26 @@ class Response {
         '   document.body.appendChild(elem);' +
         '});</script></header><body></body></html>';
 
-    public render() {
+    public render(router) {
         this.response.statusCode = 200;
-        this.response.setHeader('Content-type', 'text/html');
+        this.response.setHeader('Content-type', router.contentType);
         this.response.write(this.body);
         this.response.end();
     }
 }
+
+class Router {
+    constructor(request: Request) {
+        if (request.url.path === '/') {
+            this.contentType = 'text/html';
+        } else {
+            this.contentType = 'application/json';
+        }
+    }
+
+    public contentType;
+}
+
 
 var http_to_sio = new EventEmitter();
 
@@ -80,12 +93,13 @@ var server = http.createServer((req, res)=>{
     req.on('end', ()=>{
         try {
             request.parseRequestBody();
+
             response.body = JSON.stringify(request.body);
             http_to_sio.emit('gotHttpRequest', response.body);
         } catch (e) {
             console.log(e);
         } finally {
-            response.render();
+            response.render(new Router(request));
         }
     })
 
@@ -100,8 +114,6 @@ http_to_sio.on('gotHttpRequest', function(msg){
     console.log(msg);
     io.emit('httpReq', {message: msg});
 });
-
-
 
 server.listen(8080);
 console.log('Sever starts.');
