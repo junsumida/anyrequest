@@ -1,46 +1,32 @@
 /// <reference path="./typings/node/node.d.ts" />
 /// <reference path="./typings/underscore/underscore.d.ts" />
-/// <reference path="./typings/urijs/URI.d.ts" />
 /// <reference path="./typings/socket.io/socket.io.d.ts" />
 
 import _         = require("underscore");
 import socket_io = require("socket.io");
 import events    = require("events");
 var EventEmitter = events.EventEmitter;
-var URI          = require("URIjs"); // FIXME
+var url          = require("url");
 
-class Request {
-    private rawRequest: any;
-    private rawBody:    string;
-    private chunk:      any[] = [];
+export module Roses {
+    export class Request {
+        private rawRequest: any;
 
-    constructor(request: any) {
-        this.rawRequest = request;
-        this.parseRawRequest();
-    }
+        public body       : any;
+        public method     : string;
+        public urlObject  : any;
+        public dataBuffer : any[] = [];
 
-    public method: string;
-    public url:    any;
-    public body:   any;
+        constructor(request: any) {
+            this.rawRequest = request;
+            this.method     = this.rawRequest.method;
 
-    public path: string;
+            this.urlObject  = url.parse(this.rawRequest.url, true);
+        }
 
-    public urlParams: Object;
-
-    public pushChunk(chunk: any) {
-        this.chunk.push(chunk);
-    }
-
-    private parseRawRequest() {
-        this.method    = this.rawRequest.method;
-        this.url       = URI.parse(this.rawRequest.url);
-        this.urlParams = this.url.parts;
-    }
-
-    public parseRequestBody() {
-        var data     = Buffer.concat(this.chunk);
-        this.rawBody = data.toString();
-        this.body = JSON.parse(this.rawBody);
+        public parseRequestBody() {
+            this.body = JSON.parse(Buffer.concat(this.dataBuffer).toString());
+        }
     }
 }
 
@@ -66,8 +52,8 @@ class Response {
 }
 
 class Router {
-    constructor(request: Request) {
-        if (request.url.path === '/') {
+    constructor(request: Roses.Request, response: Response) {
+        if (request.urlObject.pathname === '/') {
             this.contentType = 'text/html';
         } else {
             this.contentType = 'application/json';
@@ -77,21 +63,21 @@ class Router {
     public contentType;
 }
 
-
 var http_to_sio = new EventEmitter();
 
 var http   = require('http');
 var server = http.createServer((req, res)=>{
 
-    var request  = new Request(req);
+    var request  = new Roses.Request(req);
     var response = new Response(res);
 
     req.on('data', (chunk)=>{
-        request.pushChunk(chunk);
+        request.dataBuffer.push(chunk);
     });
 
     req.on('end', ()=>{
-        var router = new Router(request);
+        var router = new Router(request, response);
+
         try {
             request.parseRequestBody();
 

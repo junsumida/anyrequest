@@ -1,32 +1,26 @@
 /// <reference path="./typings/node/node.d.ts" />
 /// <reference path="./typings/underscore/underscore.d.ts" />
-/// <reference path="./typings/urijs/URI.d.ts" />
 /// <reference path="./typings/socket.io/socket.io.d.ts" />
 var socket_io = require("socket.io");
 var events = require("events");
 var EventEmitter = events.EventEmitter;
-var URI = require("URIjs"); // FIXME
-var Request = (function () {
-    function Request(request) {
-        this.chunk = [];
-        this.rawRequest = request;
-        this.parseRawRequest();
-    }
-    Request.prototype.pushChunk = function (chunk) {
-        this.chunk.push(chunk);
-    };
-    Request.prototype.parseRawRequest = function () {
-        this.method = this.rawRequest.method;
-        this.url = URI.parse(this.rawRequest.url);
-        this.urlParams = this.url.parts;
-    };
-    Request.prototype.parseRequestBody = function () {
-        var data = Buffer.concat(this.chunk);
-        this.rawBody = data.toString();
-        this.body = JSON.parse(this.rawBody);
-    };
-    return Request;
-})();
+var url = require("url");
+var Roses;
+(function (Roses) {
+    var Request = (function () {
+        function Request(request) {
+            this.dataBuffer = [];
+            this.rawRequest = request;
+            this.method = this.rawRequest.method;
+            this.urlObject = url.parse(this.rawRequest.url, true);
+        }
+        Request.prototype.parseRequestBody = function () {
+            this.body = JSON.parse(Buffer.concat(this.dataBuffer).toString());
+        };
+        return Request;
+    })();
+    Roses.Request = Request;
+})(Roses = exports.Roses || (exports.Roses = {}));
 var Response = (function () {
     function Response(response) {
         this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
@@ -41,8 +35,8 @@ var Response = (function () {
     return Response;
 })();
 var Router = (function () {
-    function Router(request) {
-        if (request.url.path === '/') {
+    function Router(request, response) {
+        if (request.urlObject.pathname === '/') {
             this.contentType = 'text/html';
         }
         else {
@@ -54,13 +48,13 @@ var Router = (function () {
 var http_to_sio = new EventEmitter();
 var http = require('http');
 var server = http.createServer(function (req, res) {
-    var request = new Request(req);
+    var request = new Roses.Request(req);
     var response = new Response(res);
     req.on('data', function (chunk) {
-        request.pushChunk(chunk);
+        request.dataBuffer.push(chunk);
     });
     req.on('end', function () {
-        var router = new Router(request);
+        var router = new Router(request, response);
         try {
             request.parseRequestBody();
             response.body = JSON.stringify(request.body);
