@@ -1,6 +1,12 @@
 /// <reference path="./typings/node/node.d.ts" />
 /// <reference path="./typings/underscore/underscore.d.ts" />
 /// <reference path="./typings/socket.io/socket.io.d.ts" />
+var __extends = this.__extends || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
 var socket_io = require("socket.io");
 var events = require("events");
 var EventEmitter = events.EventEmitter;
@@ -11,15 +17,48 @@ var Roses;
         function Request(request) {
             this.dataBuffer = [];
             this.rawRequest = request;
+            this.contentType = request.headers['content-type'];
             this.method = this.rawRequest.method;
             this.urlObject = url.parse(this.rawRequest.url, true);
+            this.bodyParser = new BodyParser(this.contentType, this.method);
         }
         Request.prototype.parseRequestBody = function () {
-            this.body = JSON.parse(Buffer.concat(this.dataBuffer).toString());
+            this.body = this.bodyParser.parse(this);
         };
         return Request;
     })();
     Roses.Request = Request;
+    var BodyParser = (function () {
+        function BodyParser(contentType, httpMethod) {
+            this.contentType = contentType;
+            this.httpMethod = httpMethod;
+        }
+        BodyParser.prototype.parse = function (request) {
+            if (this.httpMethod === 'GET') {
+                return request.urlObject.query;
+            }
+            if (this.httpMethod === 'POST') {
+                if (this.contentType === 'application/json') {
+                    return JSON.parse(Buffer.concat(request.dataBuffer).toString());
+                }
+            }
+            throw new UnParsableBodyError('content-type: ' + this.contentType + ' httpMethod: ' + this.httpMethod);
+        };
+        return BodyParser;
+    })();
+    var Error = (function () {
+        function Error() {
+        }
+        return Error;
+    })();
+    var UnParsableBodyError = (function (_super) {
+        __extends(UnParsableBodyError, _super);
+        function UnParsableBodyError(message) {
+            this.message = message;
+            _super.call(this);
+        }
+        return UnParsableBodyError;
+    })(Error);
 })(Roses = exports.Roses || (exports.Roses = {}));
 var Response = (function () {
     function Response(response) {

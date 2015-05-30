@@ -14,21 +14,62 @@ export module Roses {
 
         public body       : any;
         public method     : string;
+        public contentType: string;
         public urlObject  : any;
         public dataBuffer : any[] = [];
 
-        constructor(request: any) {
-            this.rawRequest = request;
-            this.method     = this.rawRequest.method;
+        private bodyParser: BodyParser;
 
-            this.urlObject  = url.parse(this.rawRequest.url, true);
+        constructor(request: any) {
+            this.rawRequest  = request;
+
+            this.contentType = request.headers['content-type'];
+            this.method      = this.rawRequest.method;
+            this.urlObject   = url.parse(this.rawRequest.url, true);
+
+            this.bodyParser = new BodyParser(this.contentType, this.method);
         }
 
-        public parseRequestBody() {
-            this.body = JSON.parse(Buffer.concat(this.dataBuffer).toString());
+        public parseRequestBody() : void {
+            this.body = this.bodyParser.parse(this);
+        }
+    }
+
+    class BodyParser {
+        private contentType: string;
+        private httpMethod:  string;
+
+        constructor(contentType:string, httpMethod:string) {
+            this.contentType = contentType;
+            this.httpMethod  = httpMethod;
+        }
+
+        public parse(request: Roses.Request) {
+            if (this.httpMethod === 'GET') {
+                return request.urlObject.query
+            }
+
+            if (this.httpMethod === 'POST') {
+                if (this.contentType === 'application/json') {
+                    return JSON.parse(Buffer.concat(request.dataBuffer).toString());
+                }
+            }
+
+            throw new UnParsableBodyError('content-type: ' + this.contentType + ' httpMethod: ' + this.httpMethod);
+        }
+    }
+
+    class Error {
+        public message: string;
+    }
+    class UnParsableBodyError extends Error {
+        constructor(message: string) {
+            this.message = message;
+            super();
         }
     }
 }
+
 
 class Response {
     private response: any;
