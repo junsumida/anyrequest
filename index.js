@@ -62,7 +62,7 @@ var Roses;
 })(Roses = exports.Roses || (exports.Roses = {}));
 var Response = (function () {
     function Response(response) {
-        this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
+        this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.method + msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
         this.response = response;
     }
     Response.prototype.render = function (router) {
@@ -77,11 +77,17 @@ var Router = (function () {
     function Router(request, response) {
         if (request.urlObject.pathname === '/') {
             this.contentType = 'text/html';
+            this.isViewerMode = true;
         }
         else {
             this.contentType = 'application/json';
+            this.isViewerMode = false;
         }
     }
+    Router.prototype.apply = function (route, callback) {
+    };
+    Router.prototype.dispatch = function () {
+    };
     return Router;
 })();
 var http_to_sio = new EventEmitter();
@@ -96,8 +102,11 @@ var server = http.createServer(function (req, res) {
         var router = new Router(request, response);
         try {
             request.parseRequestBody();
-            response.body = JSON.stringify(request.body);
-            http_to_sio.emit('gotHttpRequest', response.body);
+            console.log(request.body);
+            if (!router.isViewerMode) {
+                response.body = JSON.stringify(request.body);
+                http_to_sio.emit('gotHttpRequest', response.body, request.method);
+            }
         }
         catch (e) {
             console.log(e);
@@ -114,9 +123,9 @@ var io = socket_io.listen(server);
 io.sockets.on('connection', function (socket) {
     console.log("server connected");
 });
-http_to_sio.on('gotHttpRequest', function (msg) {
+http_to_sio.on('gotHttpRequest', function (msg, method) {
     console.log(msg);
-    io.emit('httpReq', { message: msg });
+    io.emit('httpReq', { message: msg, method: method });
 });
 server.listen(8080);
 console.log('Sever starts.');

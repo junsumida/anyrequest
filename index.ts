@@ -80,7 +80,7 @@ class Response {
     public body: string = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' +
         'socket.on("httpReq", function(msg){' +
         '   var elem = document.createElement("p");' +
-        '   elem.innerHTML = msg.message;' +
+        '   elem.innerHTML = msg.method + msg.message;' +
         '   document.body.appendChild(elem);' +
         '});</script></header><body></body></html>';
 
@@ -95,13 +95,24 @@ class Response {
 class Router {
     constructor(request: Roses.Request, response: Response) {
         if (request.urlObject.pathname === '/') {
-            this.contentType = 'text/html';
+            this.contentType  = 'text/html';
+            this.isViewerMode = true;
         } else {
-            this.contentType = 'application/json';
+            this.contentType  = 'application/json';
+            this.isViewerMode = false;
         }
     }
 
-    public contentType;
+    public apply(route:string, callback: Function):void {
+    }
+
+    public dispatch():void {
+    }
+
+    private routes: Object;
+
+    public contentType:string;
+    public isViewerMode:boolean;
 }
 
 var http_to_sio = new EventEmitter();
@@ -122,8 +133,12 @@ var server = http.createServer((req, res)=>{
         try {
             request.parseRequestBody();
 
-            response.body = JSON.stringify(request.body);
-            http_to_sio.emit('gotHttpRequest', response.body);
+            console.log(request.body);
+
+            if (!router.isViewerMode) {
+                response.body = JSON.stringify(request.body);
+                http_to_sio.emit('gotHttpRequest', response.body, request.method);
+            }
         } catch (e) {
             console.log(e);
             if (router.contentType === 'application/json') {
@@ -141,9 +156,9 @@ io.sockets.on('connection', function(socket){
    console.log("server connected");
 });
 
-http_to_sio.on('gotHttpRequest', function(msg){
+http_to_sio.on('gotHttpRequest', function(msg, method:string){
     console.log(msg);
-    io.emit('httpReq', {message: msg});
+    io.emit('httpReq', {message: msg, method: method});
 });
 
 server.listen(8080);

@@ -8,7 +8,6 @@ describe("Roses.Request", function () {
     it('can parse method of http request and query as obj', function () {
         var request = new Request({ 'method': 'GET', 'url': 'http://hogehoge.com/hoge?user=mogemoge' });
         expect(request.method).toEqual('GET');
-        console.log(request.urlObject);
         expect(request.urlObject.query.user).toEqual('mogemoge');
     });
     //when url does not have a query
