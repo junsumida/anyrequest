@@ -1,0 +1,2 @@
+USERHOME=$HOME
+sudo PATH="$USERHOME/.nodebrew/current/bin:$PATH" "$USERHOME/.nodebrew/current/bin/forever" start $USERHOME/anyrequest/index.js
