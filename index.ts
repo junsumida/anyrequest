@@ -70,7 +70,7 @@ export module Roses {
     }
 
     export class Response {
-        private rawResponse: any;
+        public rawResponse: any;
         constructor(response: any) {
             this.rawResponse = response;
         }
