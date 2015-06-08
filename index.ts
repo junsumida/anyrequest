@@ -68,32 +68,31 @@ export module Roses {
             super();
         }
     }
-}
 
+    export class Response {
+        private rawResponse: any;
+        constructor(response: any) {
+            this.rawResponse = response;
+        }
 
-class Response {
-    private response: any;
-    constructor(response: any) {
-        this.response = response;
-    }
+        public body: string = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' +
+           'socket.on("httpReq", function(msg){' +
+           '   var elem = document.createElement("p");' +
+           '   elem.innerHTML = msg.method + msg.message;' +
+           '   document.body.appendChild(elem);' +
+           '});</script></header><body></body></html>';
 
-    public body: string = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' +
-        'socket.on("httpReq", function(msg){' +
-        '   var elem = document.createElement("p");' +
-        '   elem.innerHTML = msg.method + msg.message;' +
-        '   document.body.appendChild(elem);' +
-        '});</script></header><body></body></html>';
-
-    public render(router) {
-        this.response.statusCode = 200;
-        this.response.setHeader('Content-type', router.contentType);
-        this.response.write(this.body);
-        this.response.end();
+        public render(router): void {
+            this.rawResponse.statusCode = 200;
+            this.rawResponse.setHeader('Content-type', router.contentType);
+            this.rawResponse.write(this.body);
+            this.rawResponse.end();
+        }
     }
 }
 
 class Router {
-    constructor(request: Roses.Request, response: Response) {
+    constructor(request: Roses.Request, response: Roses.Response) {
         if (request.urlObject.pathname === '/') {
             this.contentType  = 'text/html';
             this.isViewerMode = true;
@@ -121,7 +120,7 @@ var http   = require('http');
 var server = http.createServer((req, res)=>{
 
     var request  = new Roses.Request(req);
-    var response = new Response(res);
+    var response = new Roses.Response(res);
 
     req.on('data', (chunk)=>{
         request.dataBuffer.push(chunk);
@@ -132,8 +131,6 @@ var server = http.createServer((req, res)=>{
 
         try {
             request.parseRequestBody();
-
-            console.log(request.body);
 
             if (!router.isViewerMode) {
                 response.body = JSON.stringify(request.body);

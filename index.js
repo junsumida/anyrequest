@@ -59,20 +59,21 @@ var Roses;
         }
         return UnParsableBodyError;
     })(Error);
+    var Response = (function () {
+        function Response(response) {
+            this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.method + msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
+            this.rawResponse = response;
+        }
+        Response.prototype.render = function (router) {
+            this.rawResponse.statusCode = 200;
+            this.rawResponse.setHeader('Content-type', router.contentType);
+            this.rawResponse.write(this.body);
+            this.rawResponse.end();
+        };
+        return Response;
+    })();
+    Roses.Response = Response;
 })(Roses = exports.Roses || (exports.Roses = {}));
-var Response = (function () {
-    function Response(response) {
-        this.body = '<html><header><script src="/socket.io/socket.io.js"></script><script>var socket = io();' + 'socket.on("httpReq", function(msg){' + '   var elem = document.createElement("p");' + '   elem.innerHTML = msg.method + msg.message;' + '   document.body.appendChild(elem);' + '});</script></header><body></body></html>';
-        this.response = response;
-    }
-    Response.prototype.render = function (router) {
-        this.response.statusCode = 200;
-        this.response.setHeader('Content-type', router.contentType);
-        this.response.write(this.body);
-        this.response.end();
-    };
-    return Response;
-})();
 var Router = (function () {
     function Router(request, response) {
         if (request.urlObject.pathname === '/') {
@@ -94,7 +95,7 @@ var http_to_sio = new EventEmitter();
 var http = require('http');
 var server = http.createServer(function (req, res) {
     var request = new Roses.Request(req);
-    var response = new Response(res);
+    var response = new Roses.Response(res);
     req.on('data', function (chunk) {
         request.dataBuffer.push(chunk);
     });
@@ -102,7 +103,6 @@ var server = http.createServer(function (req, res) {
         var router = new Router(request, response);
         try {
             request.parseRequestBody();
-            console.log(request.body);
             if (!router.isViewerMode) {
                 response.body = JSON.stringify(request.body);
                 http_to_sio.emit('gotHttpRequest', response.body, request.method);
